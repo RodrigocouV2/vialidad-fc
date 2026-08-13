@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<!--
+=====================================================================
+  INSTRUCCIONES DE CONFIGURACIÓN - Vialidad F.C Estadísticas
+=====================================================================
+
+1. ACTIVAR EMAIL/PASSWORD EN FIREBASE AUTHENTICATION:
+   - Ve a tu Consola Firebase → Authentication → Sign-in method
+   - Activa "Email/Password" (correo/contraseña)
+   - Registra tu usuario administrador (email + contraseña)
+
+2. CONFIGURAR REGLAS DE SEGURIDAD EN REALTIME DATABASE:
+   {
+     "rules": {
+       ".read": true,
+       ".write": "auth != null"
+     }
+   }
+   - Esto permite que cualquiera vea las estadísticas (público)
+   - Solo usuarios autenticados pueden modificar datos
+
+3. REEMPLAZAR LA CONFIGURACIÓN FIREBASE:
+   - Busca la sección "CONFIGURACIÓN FIREBASE" abajo
+   - Reemplaza los valores de ejemplo con los de tu proyecto Firebase
+
+=====================================================================
+-->
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vialidad F.C - Estadísticas</title>
+    <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABbklEQVR4nO2Vu0rEQBSGv3jphV1sjIgX1Gi5ha1NZIttrPQRbLXzIURL30DBFwjaCxZaKLikkC28sLIorDfQZm0yksSYnExiILB/k8kwc/5vzsyZgb7Krl6TXpb5Rt6mhpUupniwzkolMH8OyJpaKUygM29TCcxAEYZxKi+AY5uR7UIAHNukfnKHY5uBdiEAyhD4+aq2DoRWFfgh1H8YKNY0jyrwr1ZqHCXtLQhnQHcLAgCSq1MZR5lJMhH2+JUBCYRuFUTF1n4LwoZJqxe9BWkhpIrLauwhTPu268RIrIIsEJK5ojLMIxOZAMIQ9490X974dFt0ZuvsGBbbRw5XAJcu7YUGu4bFJjCeG4Af4vWdL7dF5+Kah7lJqgD7h5wBzExQqY7QBPaA28SYaQCUbo55Wtvi4LnLR2OZeWuK0Y11ljzIVc/4XBJL6y2YXqECUFtkbHiIQdXvZegUqIFsCzIdLv898Z8HVQzRVyn1DfUwf197PCgEAAAAAElFTkSuQmCC">
+    <style>
+        :root {
+            --primary: #b71c1c;
+            --primary-light: #e53935;
+            --secondary: #f4f4f4;
+            --accent: #ffd700;
+            --danger: #c0392b;
+            --warning: #f39c12;
+            --text: #333;
+            --card-bg: #fff;
+            --border: #ddd;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #b71c1c 0%, #7f0000 100%);
+            min-height: 100vh;
+            color: var(--text);
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+        header {
+            text-align: center;
+            color: white;
+            padding: 20px 0;
+        }
+
+        header h1 { font-size: 2.4rem; margin-bottom: 4px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+        header .subtitle { font-size: 1.1rem; color: var(--accent); font-weight: 600; letter-spacing: 2px; margin-bottom: 8px; }
+        .team-logo {
+            width: 110px; height: 110px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid var(--accent);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            margin-bottom: 12px;
+            background: #111;
+        }
+
+        .admin-badge {
+            display: inline-block;
+            background: var(--accent);
+            color: #1a5f2a;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-top: 8px;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: flex-start;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        .tab-btn:hover { background: rgba(255,255,255,0.3); transform: translateY(-2px); }
+        .tab-btn.active { background: var(--accent); color: #b71c1c; }
+        #btnLogin { margin-left: auto; background: #1a1a1a; color: #fff; border: 1px solid #333; }
+        #btnLogin:hover { background: #333; transform: translateY(-2px); }
+
+        .panel {
+            display: none;
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .panel.active { display: block; animation: fadeIn 0.3s ease; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .panel h2 {
+            color: var(--primary);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid var(--accent);
+        }
+
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: var(--primary); }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary); }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-light); transform: translateY(-2px); box-shadow: 0 5px 15px rgba(183,28,28,0.3); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #a93226; }
+        .btn-warning { background: var(--warning); color: white; }
+        .btn-small { padding: 5px 10px; font-size: 0.8rem; }
+        .btn-secondary { background: #6c757d; color: white; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background: var(--primary); color: white; font-weight: 600; position: sticky; top: 0; }
+        tr:hover { background: #f8f9fa; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 18px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .stat-card h3 { font-size: 1.8rem; margin-bottom: 5px; }
+        .stat-card p { opacity: 0.9; font-size: 0.9rem; }
+        .stat-card.gold { background: linear-gradient(135deg, #f39c12 0%, #f1c40f 100%); color: #333; }
+        .stat-card.blue { background: linear-gradient(135deg, #2980b9 0%, #3498db 100%); }
+        .stat-card.red { background: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%); }
+
+        .actions { display: flex; gap: 6px; }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+
+        .number-input { width: 70px !important; text-align: center; }
+
+        .match-result {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+        .match-result.win { background: #d4edda; color: #155724; }
+        .match-result.draw { background: #fff3cd; color: #856404; }
+        .match-result.loss { background: #f8d7da; color: #721c24; }
+
+        /* Login Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 420px;
+            width: 90%;
+            text-align: center;
+        }
+        .modal h3 { margin-bottom: 15px; color: var(--primary); }
+        .modal p { color: #666; margin-bottom: 20px; font-size: 0.95rem; }
+        .modal-buttons { display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
+
+        /* Read-only notice */
+        .player-photo {
+            width: 42px; height: 42px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-right: 8px;
+            font-size: 0.85rem;
+            overflow: hidden;
+            flex-shrink: 0;
+            border: 2px solid var(--accent);
+        }
+        .player-photo img {
+            width: 100%; height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .player-name-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .top-scorer-photo {
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--accent);
+            margin-bottom: 8px;
+            background: var(--primary);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 1.4rem;
+        }
+        .top-scorer-photo img {
+            width: 100%; height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .sync-status {
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.7);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .sync-status .dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: #2ecc71;
+            display: inline-block;
+        }
+        .sync-status .dot.offline { background: #e74c3c; }
+        .sync-status .dot.connecting { background: #f39c12; }
+
+        .hidden { display: none !important; }
+
+        .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .table-wrapper table { min-width: 520px; }
+
+        @media (max-width: 768px) {
+            header h1 { font-size: 1.6rem; }
+            .form-row { grid-template-columns: 1fr; }
+            th, td { padding: 8px; font-size: 0.85rem; }
+            .actions { flex-direction: column; }
+            .tab-btn { padding: 8px 14px; font-size: 0.85rem; }
+            .table-wrapper table { min-width: 480px; }
+            .table-wrapper th, .table-wrapper td { white-space: nowrap; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <img src="data:image/png;base64,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" alt="Vialidad F.C Logo" class="team-logo">
+            <h1>Vialidad F.C</h1>
+            <p class="subtitle">Equipo Fútbol 5.</p>
+            <div style="display:flex; justify-content:center; align-items:center; gap:15px; flex-wrap:wrap;">
+                <span id="adminBadge" class="admin-badge hidden">🔐 Modo Administrador</span>
+                <div class="sync-status">
+                    <span id="syncDot" class="dot connecting"></span>
+                    <span id="syncText">Conectando...</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showPanel('jugadores')">👥 Jugadores</button>
+            <button class="tab-btn" onclick="showPanel('partidos')">📅 Partidos</button>
+            <button class="tab-btn" onclick="showPanel('estadisticas')">📊 Estadísticas</button>
+            <button class="tab-btn" onclick="showPanel('goleadores')">🥇 Goleadores</button>
+            <button class="tab-btn" id="btnLogin" onclick="openLoginModal()">🔐 Ingresar</button>
+        </div>
+
+        <!-- Panel Jugadores -->
+        <div id="panel-jugadores" class="panel active">
+            <h2>👥 Jugadores</h2>
+            <div id="jugadores-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Nombre</label>
+                        <input type="text" id="playerName" placeholder="Ej: Juan Pérez">
+                    </div>
+                    <div class="form-group">
+                        <label>Dorsal</label>
+                        <input type="number" id="playerNumber" placeholder="1-99" min="1" max="99">
+                    </div>
+                    <div class="form-group">
+                        <label>Posición</label>
+                        <select id="playerPosition">
+                            <option value="Portero">🧤 Portero</option>
+                            <option value="Defensa">🛡️ Defensa</option>
+                            <option value="Mediocampo">⚙️ Mediocampo</option>
+                            <option value="Delantero">⚡ Delantero</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group" style="flex:2;">
+                        <label>📷 Foto (URL de imagen)</label>
+                        <input type="text" id="playerPhoto" placeholder="Pega aquí el enlace de la foto (opcional)">
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="addPlayer()">➕ Agregar Jugador</button>
+            </div>
+            <div id="playersList"><div class="empty-state"><p>Cargando jugadores...</p></div></div>
+        </div>
+
+        <!-- Panel Partidos -->
+        <div id="panel-partidos" class="panel">
+            <h2>📅 Partidos</h2>
+            <div id="partidos-form">
+                <div class="form-row">
+                    <div class="form-group"><label>Fecha</label><input type="date" id="matchDate"></div>
+                    <div class="form-group"><label>Rival</label><input type="text" id="matchOpponent" placeholder="Nombre del rival"></div>
+                    <div class="form-group"><label>Departamento</label><select id="matchLocation">
+                        <option value="">-- Selecciona --</option>
+                        <option value="Artigas">Artigas</option>
+                        <option value="Canelones">Canelones</option>
+                        <option value="Cerro Largo">Cerro Largo</option>
+                        <option value="Colonia">Colonia</option>
+                        <option value="Durazno">Durazno</option>
+                        <option value="Flores">Flores</option>
+                        <option value="Florida">Florida</option>
+                        <option value="Lavalleja">Lavalleja</option>
+                        <option value="Maldonado">Maldonado</option>
+                        <option value="Montevideo">Montevideo</option>
+                        <option value="Paysandú">Paysandú</option>
+                        <option value="Río Negro">Río Negro</option>
+                        <option value="Rivera">Rivera</option>
+                        <option value="Rocha">Rocha</option>
+                        <option value="Salto">Salto</option>
+                        <option value="San José">San José</option>
+                        <option value="Soriano">Soriano</option>
+                        <option value="Tacuarembó">Tacuarembó</option>
+                        <option value="Treinta y Tres">Treinta y Tres</option>
+                    </select></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Cancha</label><input type="text" id="matchCancha" placeholder="Ej: Complejo Vialidad, Parque Palermo..."></div>
+                    <div class="form-group"><label>Goles a Favor</label><input type="number" id="matchGoalsFor" min="0" value="0"></div>
+                    <div class="form-group"><label>Goles en Contra</label><input type="number" id="matchGoalsAgainst" min="0" value="0"></div>
+                </div>
+                <button class="btn btn-primary" onclick="addMatch()">➕ Registrar Partido</button>
+            </div>
+            <div id="matchesList"><div class="empty-state"><p>Cargando partidos...</p></div></div>
+        </div>
+
+        <!-- Panel Estadísticas -->
+        <div id="panel-estadisticas" class="panel">
+            <h2>📊 Estadísticas</h2>
+            <div id="stats-form">
+                <div class="form-row">
+                    <div class="form-group"><label>Jugador</label><select id="statPlayer"><option value="">-- Selecciona --</option></select></div>
+                    <div class="form-group"><label>Partido</label><select id="statMatch"><option value="">-- General --</option></select></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Goles</label><input type="number" id="statGoals" class="number-input" min="0" value="0"></div>
+                    <div class="form-group"><label>Asist.</label><input type="number" id="statAssists" class="number-input" min="0" value="0"></div>
+                    <div class="form-group"><label>🟨</label><input type="number" id="statYellow" class="number-input" min="0" value="0"></div>
+                    <div class="form-group"><label>🟥</label><input type="number" id="statRed" class="number-input" min="0" value="0"></div>
+                    <div class="form-group"><label>Min</label><input type="number" id="statMinutes" class="number-input" min="0" max="120" value="0"></div>
+                </div>
+                <button class="btn btn-primary" onclick="addStats()">💾 Guardar</button>
+            </div>
+            <h3 style="margin-top:25px; color:var(--primary);">📈 Tabla General</h3>
+            <div style="overflow-x:auto;">
+                <table id="statsTable">
+                    <thead><tr><th>Jugador</th><th>#</th><th>Pos</th><th>PJ</th><th>Goles</th><th>Asist.</th><th>🟨</th><th>🟥</th><th>Min</th><th>Prom</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Panel Goleadores -->
+        <div id="panel-goleadores" class="panel">
+            <h2>🥇 Tabla de Goleadores</h2>
+            <div id="topScorers"><div class="empty-state"><p>Cargando...</p></div></div>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="modal-overlay" id="loginModal">
+        <div class="modal">
+            <h3>🔐 Acceso de Administrador</h3>
+            <p>Debes ingresar tu correo y contraseña de admin.</p>
+            <div class="form-group" style="text-align:left;">
+                <label>Email</label>
+                <input type="email" id="adminEmail" placeholder="admin@ejemplo.com">
+            </div>
+            <div class="form-group" style="text-align:left;">
+                <label>Contraseña</label>
+                <input type="password" id="adminPassword" placeholder="Tu contraseña">
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closeLoginModal()">Cancelar</button>
+                <button class="btn btn-primary" onclick="loginAdmin()">Entrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Player Modal -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal" style="text-align:left;">
+            <h3>✏️ Editar Jugador</h3>
+            <div class="form-group"><label>Nombre</label><input type="text" id="editName"></div>
+            <div class="form-group"><label>Dorsal</label><input type="number" id="editNumber" min="1" max="99"></div>
+            <div class="form-group"><label>Posición</label>
+                <select id="editPosition">
+                    <option value="Portero">🧤 Portero</option>
+                    <option value="Defensa">🛡️ Defensa</option>
+                    <option value="Mediocampo">⚙️ Mediocampo</option>
+                    <option value="Delantero">⚡ Delantero</option>
+                </select>
+            </div>
+            <div class="form-group"><label>📷 Foto (URL de imagen)</label><input type="text" id="editPhoto" placeholder="Enlace de la foto"></div>
+            <div class="modal-buttons" style="justify-content:flex-end;">
+                <button class="btn btn-secondary" onclick="closeEditModal()">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveEdit()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, onValue, set, push, remove, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        // ==================== CONFIGURACIÓN FIREBASE ====================
+        const firebaseConfig = {
+            apiKey: "AIzaSyCtoUDLzyf0YbuGHawfuUwvflykqN0AQ9c",
+            authDomain: "estadisticas-mi-equipo.firebaseapp.com",
+            databaseURL: "https://estadisticas-mi-equipo-default-rtdb.firebaseio.com",
+            projectId: "estadisticas-mi-equipo",
+            storageBucket: "estadisticas-mi-equipo.firebasestorage.app",
+            messagingSenderId: "702022805563",
+            appId: "1:702022805563:web:1871225a2f268f95f9541e",
+            measurementId: "G-S8DR7E8347"
+        };
+
+        // ==================== INICIALIZAR ====================
+        let app, db, auth;
+        let currentUser = null;
+        let editingPlayerId = null;
+        let playersData = [];
+        let matchesData = [];
+        let statsData = [];
+
+        try {
+            app = initializeApp(firebaseConfig);
+            db = getDatabase(app);
+            auth = getAuth(app);
+            updateSyncStatus(true, "Conectado");
+        } catch (e) {
+            console.error("Error de conexión:", e);
+            updateSyncStatus(false, "Error de conexión");
+            alert("⚠️ Error al conectar con el servidor. Revisa la configuración.");
+        }
+
+        // Detectar cambio de sesión automáticamente
+        if (auth) {
+            onAuthStateChanged(auth, (user) => {
+                currentUser = user;
+                updateAdminUI();
+            });
+        }
+
+        // ==================== FUNCIONES DE UI ====================
+        const panelTitles = {
+            jugadores: 'Jugadores',
+            partidos: 'Partidos',
+            estadisticas: 'Estadísticas',
+            goleadores: 'Goleadores'
+        };
+        window.showPanel = function(panelId) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => {
+                if (!b.id) b.classList.remove('active');
+            });
+            document.getElementById('panel-' + panelId).classList.add('active');
+            event.target.classList.add('active');
+            document.title = 'Vialidad F.C - ' + (panelTitles[panelId] || 'Estadísticas');
+            if (panelId === 'estadisticas') { updateStatSelects(); renderStatsTable(); }
+            if (panelId === 'goleadores') renderTopScorers();
+        };
+
+        function updateSyncStatus(connected, text) {
+            const dot = document.getElementById('syncDot');
+            const txt = document.getElementById('syncText');
+            dot.className = 'dot ' + (connected ? '' : 'offline');
+            txt.textContent = text;
+        }
+
+        // ==================== MODO ADMIN ====================
+        window.openLoginModal = function() {
+            if (currentUser) {
+                if (confirm('¿Cerrar sesión de administrador?')) {
+                    signOut(auth).then(() => {
+                        currentUser = null;
+                        updateAdminUI();
+                    }).catch(e => alert('Error al cerrar sesión. Intenta de nuevo.'));
+                }
+                return;
+            }
+            document.getElementById('loginModal').classList.add('active');
+            document.getElementById('adminEmail').value = '';
+            document.getElementById('adminPassword').value = '';
+            setTimeout(() => document.getElementById('adminEmail').focus(), 100);
+        };
+
+        window.closeLoginModal = function() {
+            document.getElementById('loginModal').classList.remove('active');
+        };
+
+        window.loginAdmin = function() {
+            const email = document.getElementById('adminEmail').value.trim();
+            const pwd = document.getElementById('adminPassword').value;
+            if (!email || !pwd) { alert('Ingresa correo y contraseña de admin.'); return; }
+            signInWithEmailAndPassword(auth, email, pwd)
+                .then(() => {
+                    closeLoginModal();
+                    alert('✅ Sesión iniciada. Ahora puedes editar.');
+                })
+                .catch(e => {
+                    alert('❌ Correo o contraseña de admin incorrectos.');
+                });
+        };
+
+        function updateAdminUI() {
+            const badge = document.getElementById('adminBadge');
+            const btn = document.getElementById('btnLogin');
+            const forms = ['jugadores-form', 'partidos-form', 'stats-form'];
+
+            if (currentUser) {
+                badge.classList.remove('hidden');
+                btn.textContent = '🔓 Salir';
+                forms.forEach(id => document.getElementById(id).classList.remove('hidden'));
+            } else {
+                badge.classList.add('hidden');
+                btn.textContent = '🔐 Ingresar';
+                forms.forEach(id => document.getElementById(id).classList.add('hidden'));
+            }
+            renderPlayers();
+            renderMatches();
+        }
+
+        // ==================== FIREBASE CRUD ====================
+        function dbRef(path) { return ref(db, path); }
+
+        // Escuchar cambios en tiempo real
+        if (db) {
+            onValue(dbRef('players'), (snapshot) => {
+                const val = snapshot.val();
+                playersData = val ? Object.entries(val).map(([id, d]) => ({ id, ...d })) : [];
+                renderPlayers();
+                updateStatSelects();
+                renderStatsTable();
+                renderTopScorers();
+            });
+
+            onValue(dbRef('matches'), (snapshot) => {
+                const val = snapshot.val();
+                matchesData = val ? Object.entries(val).map(([id, d]) => ({ id, ...d })) : [];
+                renderMatches();
+                updateStatSelects();
+            });
+
+            onValue(dbRef('stats'), (snapshot) => {
+                const val = snapshot.val();
+                statsData = val ? Object.entries(val).map(([id, d]) => ({ id, ...d })) : [];
+                renderStatsTable();
+                renderTopScorers();
+            });
+        }
+
+        // ==================== JUGADORES ====================
+        window.addPlayer = function() {
+            if (!currentUser) { alert('Solo el administrador puede agregar jugadores.'); return; }
+            const name = document.getElementById('playerName').value.trim();
+            const number = parseInt(document.getElementById('playerNumber').value);
+            const position = document.getElementById('playerPosition').value;
+            const photo = document.getElementById('playerPhoto').value.trim();
+            if (!name) { alert('Ingresa el nombre'); return; }
+            if (!number || number < 1 || number > 99) { alert('Dorsal inválido'); return; }
+
+            push(dbRef('players'), { name, number, position, photo: photo || '', createdAt: Date.now() })
+                .then(() => {
+                    document.getElementById('playerName').value = '';
+                    document.getElementById('playerNumber').value = '';
+                    document.getElementById('playerPhoto').value = '';
+                })
+                .catch(e => alert('❌ No se pudo guardar. Verifica tu sesión de admin.'));
+        };
+
+        window.deletePlayer = function(id) {
+            if (!currentUser) { alert('Solo el administrador puede eliminar.'); return; }
+            if (!confirm('¿Eliminar jugador y sus estadísticas?')) return;
+            remove(dbRef('players/' + id)).catch(() => alert('❌ No se pudo eliminar. Verifica tu sesión.'));
+            statsData.filter(s => s.playerId === id).forEach(s => {
+                remove(dbRef('stats/' + s.id)).catch(() => {});
+            });
+        };
+
+        window.openEditModal = function(id) {
+            if (!currentUser) { alert('Solo el administrador puede editar.'); return; }
+            const p = playersData.find(x => x.id === id);
+            if (!p) return;
+            editingPlayerId = id;
+            document.getElementById('editName').value = p.name;
+            document.getElementById('editNumber').value = p.number;
+            document.getElementById('editPosition').value = p.position;
+            document.getElementById('editPhoto').value = p.photo || '';
+            document.getElementById('editModal').classList.add('active');
+        };
+
+        window.closeEditModal = function() {
+            document.getElementById('editModal').classList.remove('active');
+            editingPlayerId = null;
+        };
+
+        window.saveEdit = function() {
+            if (!editingPlayerId) return;
+            update(dbRef('players/' + editingPlayerId), {
+                name: document.getElementById('editName').value.trim(),
+                number: parseInt(document.getElementById('editNumber').value),
+                position: document.getElementById('editPosition').value,
+                photo: document.getElementById('editPhoto').value.trim()
+            }).catch(() => alert('❌ No se pudo guardar. Verifica tu sesión de admin.'));
+            closeEditModal();
+        };
+
+        function renderPlayers() {
+            const container = document.getElementById('playersList');
+            if (playersData.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>No hay jugadores registrados.</p></div>';
+                return;
+            }
+            const sorted = [...playersData].sort((a, b) => a.number - b.number);
+            let html = '<table><thead><tr><th>Foto</th><th>#</th><th>Nombre</th><th>Posición</th>' + (currentUser ? '<th>Acciones</th>' : '') + '</tr></thead><tbody>';
+            sorted.forEach(p => {
+                const emoji = p.position === 'Portero' ? '🧤' : p.position === 'Defensa' ? '🛡️' : p.position === 'Mediocampo' ? '⚙️' : '⚡';
+                const photoHtml = p.photo ? `<span class="player-photo"><img src="${p.photo}" alt="${p.name}" onerror="this.style.display='none';this.parentElement.textContent='${p.number}'"></span>` : `<span class="player-photo">${p.number}</span>`;
+                html += `<tr><td>${photoHtml}</td><td style="font-weight:700;color:var(--primary);text-align:center;">${p.number}</td><td><div class="player-name-cell"><strong>${p.name}</strong></div></td><td>${emoji} ${p.position}</td>`;
+                if (currentUser) html += `<td class="actions"><button class="btn btn-warning btn-small" onclick="openEditModal('${p.id}')">✏️</button><button class="btn btn-danger btn-small" onclick="deletePlayer('${p.id}')">🗑️</button></td>`;
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        // ==================== PARTIDOS ====================
+        window.addMatch = function() {
+            if (!currentUser) { alert('Solo el administrador puede registrar partidos.'); return; }
+            const date = document.getElementById('matchDate').value;
+            const opponent = document.getElementById('matchOpponent').value.trim();
+            const location = document.getElementById('matchLocation').value;
+            const cancha = document.getElementById('matchCancha').value.trim();
+            const goalsFor = parseInt(document.getElementById('matchGoalsFor').value) || 0;
+            const goalsAgainst = parseInt(document.getElementById('matchGoalsAgainst').value) || 0;
+            if (!date || !opponent || !location) { alert('Completa fecha, rival y departamento'); return; }
+
+            let result = 'draw';
+            if (goalsFor > goalsAgainst) result = 'win';
+            else if (goalsFor < goalsAgainst) result = 'loss';
+
+            push(dbRef('matches'), { date, opponent, location, cancha, goalsFor, goalsAgainst, result, createdAt: Date.now() })
+                .then(() => {
+                    document.getElementById('matchOpponent').value = '';
+                    document.getElementById('matchLocation').value = '';
+                    document.getElementById('matchCancha').value = '';
+                    document.getElementById('matchGoalsFor').value = '0';
+                    document.getElementById('matchGoalsAgainst').value = '0';
+                }).catch(() => alert('❌ No se pudo guardar el partido. Verifica tu sesión.'));
+        };
+
+        window.deleteMatch = function(id) {
+            if (!currentUser) return;
+            if (!confirm('¿Eliminar partido?')) return;
+            remove(dbRef('matches/' + id)).catch(() => alert('❌ No se pudo eliminar. Verifica tu sesión.'));
+            statsData.filter(s => s.matchId === id).forEach(s => remove(dbRef('stats/' + s.id)).catch(() => {}));
+        };
+
+        function renderMatches() {
+            const container = document.getElementById('matchesList');
+            if (matchesData.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>No hay partidos registrados.</p></div>';
+                return;
+            }
+            const sorted = [...matchesData].sort((a, b) => new Date(b.date) - new Date(a.date));
+            const wins = matchesData.filter(m => m.result === 'win').length;
+            const draws = matchesData.filter(m => m.result === 'draw').length;
+            const losses = matchesData.filter(m => m.result === 'loss').length;
+            const gf = matchesData.reduce((s, m) => s + (m.goalsFor || 0), 0);
+            const gc = matchesData.reduce((s, m) => s + (m.goalsAgainst || 0), 0);
+            const pts = wins * 3 + draws;
+
+            let html = `<div class="stats-grid">
+                <div class="stat-card"><h3>${matchesData.length}</h3><p>Partidos</p></div>
+                <div class="stat-card gold"><h3>${pts}</h3><p>Puntos</p></div>
+                <div class="stat-card blue"><h3>${wins}</h3><p>Victorias</p></div>
+                <div class="stat-card"><h3>${draws}</h3><p>Empates</p></div>
+                <div class="stat-card red"><h3>${losses}</h3><p>Derrotas</p></div>
+                <div class="stat-card"><h3>${gf}:${gc}</h3><p>Goles F:C</p></div>
+            </div>`;
+
+            html += '<div class="table-wrapper"><table><thead><tr><th>Fecha</th><th>Rival</th><th>Dept.</th><th>Cancha</th><th>Resultado</th><th>Marcador</th>' + (currentUser ? '<th>Acc.</th>' : '') + '</tr></thead><tbody>';
+            sorted.forEach(m => {
+                const rt = m.result === 'win' ? 'Victoria' : m.result === 'loss' ? 'Derrota' : 'Empate';
+                const canchaText = m.cancha ? m.cancha : '-';
+                html += `<tr><td>${new Date(m.date + 'T00:00:00').toLocaleDateString('es-ES')}</td><td><strong>${m.opponent}</strong></td><td>${m.location}</td><td>${canchaText}</td><td><span class="match-result ${m.result}">${rt}</span></td><td><strong>${m.goalsFor} - ${m.goalsAgainst}</strong></td>`;
+                if (currentUser) html += `<td><button class="btn btn-danger btn-small" onclick="deleteMatch('${m.id}')">🗑️</button></td>`;
+                html += '</tr>';
+            });
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+        }
+
+        // ==================== ESTADÍSTICAS ====================
+        function updateStatSelects() {
+            const ps = document.getElementById('statPlayer');
+            const ms = document.getElementById('statMatch');
+            ps.innerHTML = '<option value="">-- Selecciona --</option>';
+            [...playersData].sort((a, b) => a.number - b.number).forEach(p => {
+                ps.innerHTML += `<option value="${p.id}">#${p.number} - ${p.name}</option>`;
+            });
+            ms.innerHTML = '<option value="">-- General --</option>';
+            [...matchesData].sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(m => {
+                ms.innerHTML += `<option value="${m.id}">${new Date(m.date + 'T00:00:00').toLocaleDateString('es-ES')} vs ${m.opponent}</option>`;
+            });
+        }
+
+        window.addStats = function() {
+            if (!currentUser) { alert('Solo el administrador puede registrar estadísticas.'); return; }
+            const playerId = document.getElementById('statPlayer').value;
+            const matchId = document.getElementById('statMatch').value;
+            if (!playerId) { alert('Selecciona un jugador'); return; }
+
+            push(dbRef('stats'), {
+                playerId,
+                matchId: matchId || null,
+                goals: parseInt(document.getElementById('statGoals').value) || 0,
+                assists: parseInt(document.getElementById('statAssists').value) || 0,
+                yellow: parseInt(document.getElementById('statYellow').value) || 0,
+                red: parseInt(document.getElementById('statRed').value) || 0,
+                minutes: parseInt(document.getElementById('statMinutes').value) || 0,
+                createdAt: Date.now()
+            }).then(() => {
+                document.getElementById('statGoals').value = '0';
+                document.getElementById('statAssists').value = '0';
+                document.getElementById('statYellow').value = '0';
+                document.getElementById('statRed').value = '0';
+                document.getElementById('statMinutes').value = '0';
+            }).catch(() => alert('❌ No se pudo guardar la estadística. Verifica tu sesión.'));
+        };
+
+        function getPlayerStats(pid) {
+            const s = statsData.filter(x => x.playerId === pid);
+            return {
+                pj: s.length,
+                goals: s.reduce((a, b) => a + (b.goals || 0), 0),
+                assists: s.reduce((a, b) => a + (b.assists || 0), 0),
+                yellow: s.reduce((a, b) => a + (b.yellow || 0), 0),
+                red: s.reduce((a, b) => a + (b.red || 0), 0),
+                minutes: s.reduce((a, b) => a + (b.minutes || 0), 0)
+            };
+        }
+
+        function renderStatsTable() {
+            const tbody = document.querySelector('#statsTable tbody');
+            if (playersData.length === 0) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Sin jugadores</td></tr>'; return; }
+            const sorted = [...playersData].sort((a, b) => getPlayerStats(b.id).goals - getPlayerStats(a.id).goals);
+            tbody.innerHTML = sorted.map(p => {
+                const s = getPlayerStats(p.id);
+                const prom = s.pj > 0 ? (s.goals / s.pj).toFixed(2) : '0.00';
+                const photoHtml = p.photo ? `<img src="${p.photo}" alt="${p.name}" onerror="this.style.display='none';this.parentElement.textContent='${p.number}'">` : p.number;
+                return `<tr><td><div class="player-name-cell"><span class="player-photo">${photoHtml}</span><strong>${p.name}</strong></div></td><td>${p.number}</td><td>${p.position}</td><td>${s.pj}</td><td><strong style="color:var(--primary);">${s.goals}</strong></td><td>${s.assists}</td><td>${s.yellow > 0 ? '🟨 ' + s.yellow : 0}</td><td>${s.red > 0 ? '🟥 ' + s.red : 0}</td><td>${s.minutes}</td><td>${prom}</td></tr>`;
+            }).join('');
+        }
+
+        function renderTopScorers() {
+            const container = document.getElementById('topScorers');
+            const scorers = playersData.map(p => ({ ...p, ...getPlayerStats(p.id) })).filter(p => p.goals > 0).sort((a, b) => b.goals - a.goals);
+            if (scorers.length === 0) { container.innerHTML = '<div class="empty-state"><p>Aún no hay goles registrados.</p></div>'; return; }
+            container.innerHTML = '<div class="stats-grid">' + scorers.map((s, i) => {
+                const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}°`;
+                const photoHtml = s.photo ? `<img src="${s.photo}" alt="${s.name}" onerror="this.style.display='none';this.parentElement.textContent='${s.name[0]}'">` : s.name[0];
+                return `<div class="stat-card ${i === 0 ? 'gold' : ''}"><div class="top-scorer-photo">${photoHtml}</div><h3>${medal}</h3><p style="font-size:1.1rem;font-weight:bold;">${s.name}</p><p style="font-size:1.6rem;margin:8px 0;"><strong>${s.goals}</strong> goles</p><p>en ${s.pj} PJ (${s.assists} asist.)</p></div>`;
+            }).join('') + '</div>';
+        }
+
+        // ==================== INICIO ====================
+        document.getElementById('matchDate').valueAsDate = new Date();
+        updateAdminUI(); // Modo lectura por defecto
+    </script>
+</body>
+</html>
